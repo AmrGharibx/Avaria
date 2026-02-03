@@ -3,7 +3,7 @@
 // ============================================================
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { ThemeConfig, DashboardWidget } from "@/types";
 
 // ============================================================
@@ -14,6 +14,8 @@ interface ThemeState {
   config: ThemeConfig;
   setConfig: (config: Partial<ThemeConfig>) => void;
   resetConfig: () => void;
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
 }
 
 const defaultThemeConfig: ThemeConfig = {
@@ -38,9 +40,15 @@ export const useThemeStore = create<ThemeState>()(
           config: { ...state.config, ...newConfig },
         })),
       resetConfig: () => set({ config: defaultThemeConfig }),
+      _hasHydrated: false,
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
     }),
     {
       name: "red-academy-theme",
+      storage: createJSONStorage(() => localStorage),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );
@@ -87,6 +95,7 @@ export const useDashboardStore = create<DashboardState>()(
     }),
     {
       name: "red-academy-dashboard",
+      storage: createJSONStorage(() => localStorage),
     }
   )
 );

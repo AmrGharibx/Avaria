@@ -223,6 +223,7 @@ export function ProgressBar({
 interface BadgeProps {
   children: React.ReactNode;
   variant?: "default" | "success" | "warning" | "error" | "info";
+  className?: string;
 }
 
 const badgeVariants = {
@@ -233,12 +234,13 @@ const badgeVariants = {
   info: "bg-sky-500/15 text-sky-300",
 };
 
-export function Badge({ children, variant = "default" }: BadgeProps) {
+export function Badge({ children, variant = "default", className }: BadgeProps) {
   return (
     <span
       className={cn(
         "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium",
-        badgeVariants[variant]
+        badgeVariants[variant],
+        className
       )}
     >
       {children}
@@ -250,7 +252,8 @@ export function Badge({ children, variant = "default" }: BadgeProps) {
 // BUTTON
 // ============================================================
 
-interface ButtonProps extends HTMLMotionProps<"button"> {
+interface ButtonProps extends Omit<HTMLMotionProps<"button">, "children"> {
+  children?: React.ReactNode;
   variant?: "primary" | "secondary" | "ghost" | "danger";
   size?: "sm" | "md" | "lg";
   loading?: boolean;

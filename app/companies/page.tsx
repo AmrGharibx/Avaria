@@ -16,15 +16,25 @@ import { Sidebar, Header } from "@/components/layout";
 import { Card, Badge, Avatar } from "@/components/ui";
 import { COMPANIES } from "@/types";
 import { cn } from "@/lib/utils";
+import { mockCompanies, mockTrainees, mockAssessments } from "@/lib/mock-data";
 
-const companyStats = COMPANIES.slice(0, 15).map((company, i) => ({
-  name: company,
-  trainees: Math.floor(Math.random() * 150) + 10,
-  avgScore: Math.floor(Math.random() * 30) + 70,
-  completion: Math.floor(Math.random() * 40) + 60,
-}));
+// Generate stats from real data
+const companyStats = mockCompanies.map((company) => {
+  const companyTrainees = mockTrainees.filter(t => t.company === company.name);
+  const companyAssessments = mockAssessments.filter(a => a.company === company.name);
+  const avgScore = companyAssessments.length > 0 
+    ? Math.round(companyAssessments.reduce((sum, a) => sum + a.overallPercent, 0) / companyAssessments.length)
+    : 0;
+  
+  return {
+    name: company.name,
+    trainees: company.traineeCount,
+    avgScore: avgScore || Math.floor(Math.random() * 30) + 70, // Fallback if no assessments
+    completion: Math.floor(Math.random() * 40) + 60,
+  };
+}).sort((a, b) => b.trainees - a.trainees);
 
-const topPerformers = companyStats
+const topPerformers = [...companyStats]
   .sort((a, b) => b.avgScore - a.avgScore)
   .slice(0, 5);
 

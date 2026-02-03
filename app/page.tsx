@@ -1,21 +1,9 @@
 "use client";
 
 import * as React from "react";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import CountUp from "react-countup";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import {
   ArrowUpRight,
   Bell,
@@ -29,112 +17,144 @@ import {
 } from "lucide-react";
 import { Sidebar, Header } from "@/components/layout";
 import { CustomizationPanel } from "@/components/customization/CustomizationPanel";
+import { ClientOnly, LoadingScreen } from "@/components/ClientOnly";
+import { mockDashboardStats, mockDailyAttendance, mockTrainees, mock10DayAttendance } from "@/lib/mock-data";
+
+// Dynamic import Recharts to avoid SSR issues
+const AreaChart = dynamic(
+  () => import("recharts").then((mod) => mod.AreaChart),
+  { ssr: false }
+);
+const Area = dynamic(() => import("recharts").then((mod) => mod.Area), {
+  ssr: false,
+});
+const BarChart = dynamic(
+  () => import("recharts").then((mod) => mod.BarChart),
+  { ssr: false }
+);
+const Bar = dynamic(() => import("recharts").then((mod) => mod.Bar), {
+  ssr: false,
+});
+const PieChart = dynamic(
+  () => import("recharts").then((mod) => mod.PieChart),
+  { ssr: false }
+);
+const Pie = dynamic(() => import("recharts").then((mod) => mod.Pie), {
+  ssr: false,
+});
+const Cell = dynamic(() => import("recharts").then((mod) => mod.Cell), {
+  ssr: false,
+});
+const ResponsiveContainer = dynamic(
+  () => import("recharts").then((mod) => mod.ResponsiveContainer),
+  { ssr: false }
+);
+const Tooltip = dynamic(() => import("recharts").then((mod) => mod.Tooltip), {
+  ssr: false,
+});
+const XAxis = dynamic(() => import("recharts").then((mod) => mod.XAxis), {
+  ssr: false,
+});
+const YAxis = dynamic(() => import("recharts").then((mod) => mod.YAxis), {
+  ssr: false,
+});
 
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
   animate: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.4, ease: "easeOut" },
+    transition: { duration: 0.4, ease: [0.4, 0, 0.2, 1] as const },
   },
   exit: {
     opacity: 0,
     y: -20,
-    transition: { duration: 0.3, ease: "easeIn" },
+    transition: { duration: 0.3, ease: [0.4, 0, 1, 1] as const },
   },
 };
 
+// Use real data from Notion exports
 const stats = [
   {
     title: "Active Batches",
-    value: 3,
+    value: mockDashboardStats.activeBatches,
     trend: 12,
     icon: GraduationCap,
     color: "red",
   },
   {
     title: "Planning Batches",
-    value: 2,
+    value: mockDashboardStats.planningBatches,
     trend: 4,
     icon: CalendarCheck,
     color: "amber",
   },
   {
     title: "Completed Batches",
-    value: 28,
+    value: mockDashboardStats.completedBatches,
     trend: 8,
     icon: ShieldCheck,
     color: "emerald",
   },
   {
     title: "Total Trainees",
-    value: 512,
+    value: mockDashboardStats.totalTrainees,
     trend: 16,
     icon: Users,
     color: "sky",
   },
 ];
 
-const attendanceTrend = [
-  { day: "Mon", value: 68 },
-  { day: "Tue", value: 71 },
-  { day: "Wed", value: 76 },
-  { day: "Thu", value: 73 },
-  { day: "Fri", value: 79 },
-  { day: "Sat", value: 75 },
-  { day: "Sun", value: 73 },
-];
+const attendanceTrend = mockDashboardStats.weeklyTrend;
 
-const outcomeData = [
-  { name: "Aced", value: 67 },
-  { name: "Excellent", value: 18 },
-  { name: "Good", value: 10 },
-  { name: "Needs Improvement", value: 5 },
-];
+const outcomeData = mockDashboardStats.outcomeDistribution;
 
 const outcomeColors = ["#DC2626", "#F59E0B", "#38BDF8", "#94A3B8"];
 
-const topCompanies = [
-  { name: "RED", trainees: 156 },
-  { name: "Impact", trainees: 89 },
-  { name: "Casablanca", trainees: 67 },
-  { name: "Petra", trainees: 54 },
-  { name: "Housology", trainees: 32 },
-];
+const topCompanies = mockDashboardStats.topCompanies;
 
-const recentAttendance = [
-  {
-    name: "Karim Mahmoud",
-    status: "Present",
-    time: "10:20 AM",
-    badge: "bg-emerald-500/15 text-emerald-300",
-  },
-  {
-    name: "Rowan Alaa",
-    status: "Present",
-    time: "10:30 AM",
-    badge: "bg-emerald-500/15 text-emerald-300",
-  },
-  {
-    name: "Ahmed Hassan",
-    status: "Late",
-    time: "11:45 AM",
-    badge: "bg-amber-500/15 text-amber-300",
-  },
-  {
-    name: "Sara Mohamed",
-    status: "Absent",
-    time: "—",
-    badge: "bg-rose-500/15 text-rose-300",
-  },
-];
+// Get recent attendance entries (last 10)
+const recentAttendance = mockDailyAttendance
+  .slice(0, 10)
+  .map(a => {
+    const trainee = mockTrainees.find(t => t.id === a.traineeId);
+    // Extract name from entryId if trainee not found (format: "YYYY-MM-DD - Name")
+    const nameFromEntry = a.entryId?.split(' - ')[1] || 'Unknown';
+    
+    let badge = "bg-emerald-500/15 text-emerald-300";
+    let status = "Present";
+    
+    if (a.status === "Absent") {
+      badge = "bg-rose-500/15 text-rose-300";
+      status = "Absent";
+    } else if (a.wasLate || a.status === "Tour Day") {
+      badge = "bg-amber-500/15 text-amber-300";
+      status = a.status === "Tour Day" ? "Tour" : "Late";
+    }
+    
+    const timeStr = a.arrivalTime 
+      ? a.arrivalTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })
+      : "—";
+    
+    return {
+      name: trainee?.traineeName || nameFromEntry,
+      status,
+      time: timeStr,
+      badge,
+    };
+  });
 
-const tenDayProgress = [
-  { name: "Karim Mahmoud", percent: 90, status: "In Progress" },
-  { name: "Sara Mohamed", percent: 100, status: "Complete" },
-  { name: "Rowan Alaa", percent: 70, status: "In Progress" },
-  { name: "Ahmed Hassan", percent: 50, status: "Not Started" },
-];
+// Get 10-day progress from real data
+const tenDayProgress = mock10DayAttendance
+  .slice(0, 5)
+  .map(a => {
+    const trainee = mockTrainees.find(t => t.id === a.traineeId);
+    return {
+      name: trainee?.traineeName || "Unknown",
+      percent: a.completionPercent,
+      status: a.checklistStatus,
+    };
+  });
 
 const colorMap: Record<
   string,
